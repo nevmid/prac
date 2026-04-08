@@ -158,10 +158,12 @@ class LoginWindow(QMainWindow):
             return
 
         self.db.reset_failed_attempts(user['id_user'])
+        role = self.db.get_role(user['role_id'])
+        print(role)
         self.current_user = User(
             user['id_user'],
             user['login'],
-            user['role'],
+            role[0],
             user['is_blocked']
         )
 

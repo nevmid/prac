@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QMessageBox, QHeaderView, QCheckBox, QFocusFrame, QFrame)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
+from views.login_widget import LoginWindow
 
 
 class UserDialog(QDialog):
@@ -30,7 +31,8 @@ class UserDialog(QDialog):
         self.role_combo = QComboBox()
         self.role_combo.addItems(["user", "admin"])
         if self.user:
-            index = self.role_combo.findText(self.user['role'])
+            role = self.db.get_role(self.user['role_id'])
+            index = self.role_combo.findText(role[0])
             self.role_combo.setCurrentIndex(index)
         layout.addRow("Роль:", self.role_combo)
 
@@ -67,16 +69,27 @@ class UserDialog(QDialog):
                     "Пользователь с таким логином уже существует!"
                 )
                 return
-
-            result = self.db.create_user(login, password, role)
+            role_id = self.db.get_role_id(role)
+            result = self.db.create_user(login, password, role_id)
             if result:
                 QMessageBox.information(self, "Успех", "Пользователь добавлен!")
                 self.accept()
             else:
                 QMessageBox.critical(self, "Ошибка", "Не удалось добавить пользователя")
         else:
+            existing = self.db.get_user_by_login(login)
+            if existing:
+                if existing['id_user'] != self.user['id_user']:
+                    QMessageBox.warning(
+                        self,
+                        "Ошибка",
+                        "Пользователь с таким логином уже существует!"
+                    )
+                    return
+            
+            role_id = self.db.get_role_id(role)
             result = self.db.update_user(
-                self.user['id_user'], login, password, role, is_blocked
+                self.user['id_user'], login, password, role_id, is_blocked
             )
             if result:
                 QMessageBox.information(self, "Успех", "Данные обновлены!")
@@ -130,10 +143,14 @@ class AdminWindow(QMainWindow):
         self.product_btn.clicked.connect(self.load_products)
         self.production_btn = QPushButton("Производство")
         self.production_btn.clicked.connect(self.load_productions)
+        
         if self.current_user.role == "admin":
             self.user_btn = QPushButton("Пользователи")
             self.user_btn.clicked.connect(self.load_users)
             btns_layout.addWidget(self.user_btn)
+
+        self.exit_btn = QPushButton("Выйти")
+        self.exit_btn.clicked.connect(self.exit)
 
         btns_layout.addWidget(self.customer_btn)
         btns_layout.addWidget(self.order_btn)
@@ -141,6 +158,7 @@ class AdminWindow(QMainWindow):
         btns_layout.addWidget(self.material_btn)
         btns_layout.addWidget(self.product_btn)
         btns_layout.addWidget(self.production_btn)
+        btns_layout.addWidget(self.exit_btn)
 
         table_frame = QFrame()
         table_frame.setStyleSheet("""
@@ -280,9 +298,10 @@ class AdminWindow(QMainWindow):
         self.main_table.setRowCount(len(users))
 
         for row, user in enumerate(users):
+            role = self.db.get_role(user['role_id'])
             self.main_table.setItem(row, 0, QTableWidgetItem(str(user['id_user'])))
             self.main_table.setItem(row, 1, QTableWidgetItem(user['login']))
-            self.main_table.setItem(row, 2, QTableWidgetItem(user['role']))
+            self.main_table.setItem(row, 2, QTableWidgetItem(role[0]))
             blocked_text = "Да" if user['is_blocked'] else "Нет"
             blocked_item = QTableWidgetItem(blocked_text)
             self.main_table.setItem(row, 3, blocked_item)
@@ -340,3 +359,10 @@ class AdminWindow(QMainWindow):
     def unblock_user(self, user):
         self.db.unblock_user(user['id_user'])
         self.load_users()
+    
+    def exit(self):
+        self.user = None
+        self.db = None
+        self.window = LoginWindow()
+        self.window.show()
+        self.close()

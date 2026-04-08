@@ -200,13 +200,13 @@ class Database:
         finally:
             self.close_connection()
 
-    def create_user(self, login, password, role='user'):
+    def create_user(self, login, password, role=2):
         try:
             if not self.conn or self.conn.closed:
                 self.connect()
             cursor = self.conn.cursor()
             cursor.execute(
-                "INSERT INTO users (login, password, role) VALUES (%s, %s, %s) RETURNING id_user",
+                "INSERT INTO users (login, password, role_id) VALUES (%s, %s, %s) RETURNING id_user",
                 (login, password, role)
             )
             user_id = cursor.fetchone()[0]
@@ -224,7 +224,7 @@ class Database:
                 self.connect()
             cursor = self.conn.cursor()
             cursor.execute(
-                "UPDATE users SET login = %s, password = %s, role = %s, is_blocked = %s WHERE id_user = %s",
+                "UPDATE users SET login = %s, password = %s, role_id = %s, is_blocked = %s WHERE id_user = %s",
                 (login, password, role, is_blocked, user_id)
             )
             self.conn.commit()
@@ -260,5 +260,35 @@ class Database:
             self.conn.commit()
         except Exception as e:
             print(f"Ошибка разблокировки: {e}")
+        finally:
+            self.close_connection()
+    
+    def get_role(self, role_id):
+        try:
+            if not self.conn or self.conn.closed:
+                self.connect()
+            cursor = self.conn.cursor()
+            cursor.execute(
+                    "SELECT name FROM roles WHERE role_id = %s",
+                    (role_id,))
+            return cursor.fetchone()
+        except Exception as e:
+            print(f"Ошибка получения роли: {e}")
+            return None
+        finally:
+            self.close_connection()
+    
+    def get_role_id(self, role_name):
+        try:
+            if not self.conn or self.conn.closed:
+                self.connect()
+            cursor = self.conn.cursor()
+            cursor.execute(
+                    "SELECT role_id FROM roles WHERE name = %s",
+                    (role_name,))
+            return cursor.fetchone()
+        except Exception as e:
+            print(f"Ошибка получения id роли: {e}")
+            return None
         finally:
             self.close_connection()

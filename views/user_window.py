@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QDialog, QFormLayout, QLineEdit, QComboBox,
                              QMessageBox, QHeaderView, QCheckBox, QFocusFrame, QFrame)
 from PyQt5.QtCore import Qt
-
+from views.login_widget import LoginWindow
 
 class UserWindow(QMainWindow):
     def __init__(self, current_user, db):
@@ -42,12 +42,16 @@ class UserWindow(QMainWindow):
             self.user_btn.clicked.connect(self.load_users)
             btns_layout.addWidget(self.user_btn)
 
+        self.exit_btn = QPushButton("Выйти")
+        self.exit_btn.clicked.connect(self.exit)
+
         btns_layout.addWidget(self.customer_btn)
         btns_layout.addWidget(self.order_btn)
         btns_layout.addWidget(self.specification_btn)
         btns_layout.addWidget(self.material_btn)
         btns_layout.addWidget(self.product_btn)
         btns_layout.addWidget(self.production_btn)
+        btns_layout.addWidget(self.exit_btn)
 
         table_frame = QFrame()
         table_layout = QVBoxLayout(table_frame)
@@ -173,3 +177,10 @@ class UserWindow(QMainWindow):
             blocked_item = QTableWidgetItem(blocked_text)
             self.main_table.setItem(row, 3, blocked_item)
             self.main_table.setItem(row, 4, QTableWidgetItem(str(user['failed_attempts'])))
+    
+    def exit(self):
+        self.user = None
+        self.db = None
+        self.window = LoginWindow()
+        self.window.show()
+        self.close()
